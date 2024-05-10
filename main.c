@@ -13,6 +13,12 @@
 #define KEY_PIN PINC
 #define KEY_DDR DDRC
 
+#define DDR DDRB
+#define PORT PORTB
+#define RS_PIN 0
+#define RW_PIN 1
+#define EN_PIN 2
+
 typedef struct {
 	unsigned char second;
 	unsigned char minute;
@@ -38,15 +44,23 @@ int main(void) {
 	avr_init();
 	lcd_init();
 	keypad_init();
-	DDRB = 1;
+	lcd_clr();
+	//DDRB = 1;
     while (1) {
 		//avr_wait(1000);
-		unsigned char key = getkey();
+		//unsigned char key = getkey();
 		
-		if (key)
+		
+		for (int i = 0; i < 2; ++i)
 		{
-			PORTB |= 1;
+			lcd_pos(i,0);
+			for (int j = 0; j < 15; ++j)
+			{
+				char a = '7';
+				lcd_put(a);
+			}
 		}
+		//lcd_puts1("ABC");
 		
     }
 }
