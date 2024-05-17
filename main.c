@@ -14,15 +14,127 @@
 #define KEY_PIN PINC
 #define KEY_DDR DDRC
 
+#define SP_PORT PORTB
 
-typedef struct {
-	unsigned char hour;
-	unsigned char minute;
-	unsigned char second;
-	unsigned char month;
-	unsigned char day;
-	unsigned int year;
-} DateTime;
+#include <avr/wdt.h>
+
+#define A 440
+#define As 466
+#define B 494
+#define C 523
+#define Cs 554
+#define D 587
+#define Ds 622
+#define Ee 659
+#define F 698
+#define Fs 740
+#define G 784
+#define Gs 831
+#define hA 880
+#define hAs 932
+#define hB 988
+#define hC 1046
+#define hCs 1109
+#define hD 1175
+#define hDs 1244
+#define hEe 1318
+#define hF 1397
+#define hFs 1480
+#define hG 1568
+#define hGs 1161
+#define lA 220
+#define lAs 233
+#define lB 247
+#define lC 262
+#define lCs 277
+#define lD 294
+#define lDs 311
+#define lEe 330
+#define lF 349
+#define lFs 370
+#define lG 392
+#define lGs 415
+
+int notelist[] = {A, As, B, C, Cs, D, Ds, Ee, F, Fs, G, Gs, hA, hAs, hB, hC, hCs, hD, hDs, hEe, hF, hFs, hG, hGs, lA, lAs, lB, lC, lCs, lD, lDs, lEe, lF, lFs, lG, lGs};
+
+void keypad_init(void);
+unsigned char getkey(void);
+char wait_key(void);
+unsigned char char_to_number(char c);
+
+void Wait(unsigned long len)
+{
+	volatile unsigned long i; 
+	for (i = 0; i < len; ++i)
+	{
+	}
+}
+
+typedef enum
+{
+	W = 16,
+	H = 8,
+	Q = 4,
+	Ei = 2,
+	T = 3,
+	U = 1
+} Duration;
+
+typedef struct 
+{
+	int note;
+	Duration duration;
+} PlayNote;
+
+
+typedef struct 
+{
+	PlayNote *song;
+	int length;
+	int speed;
+	char* name;
+} songinfo;
+
+
+void play_note(const PlayNote* note, unsigned long u)
+{
+	if (note->note == 0)
+	{
+		unsigned long dura = u * note->duration * 2;
+		for (unsigned long i = 0; i < dura; ++i)
+		{
+			CLR_BIT(SP_PORT,3);
+			wdt_reset();
+		}
+	}
+	else
+	{
+		unsigned long dura = u * note->duration;
+		int waitt = 250000 / note->note / 2;
+		for (unsigned long i = 0; i < dura/(waitt*2); ++i)
+		{
+			SET_BIT(SP_PORT,3);
+			Wait(waitt);
+			CLR_BIT(SP_PORT,3);
+			Wait(waitt);
+			wdt_reset();
+		}
+	}
+}
+
+char play_song(const PlayNote song[], int length, int speed)
+{
+	unsigned long u = 15000000 / speed / Q;
+	for (int i = 0; i < length; ++i)
+	{
+		play_note(&song[i],u);
+		char key = getkey();
+		if (key)
+		{
+			return key;
+		}
+	}
+}
 
 const char keymap[4][4] = {
 	{'1','2','3','A'},
@@ -31,69 +143,127 @@ const char keymap[4][4] = {
 	{'*','0','#','D'}
 };
 
-void keypad_init(void);
-unsigned char getkey(void);
-void set_time(DateTime *dt);
-void display_time(const DateTime *dt);
-void display_timeAP(const DateTime *dt);
-void tick(DateTime *time);
-char wait_key(void);
-unsigned char char_to_number(char c);
-char check_input(DateTime* dt);
 
 int main(void) {
+	int offset = 0;
+
+
 	avr_init();
 	lcd_init();
 	keypad_init();
 	lcd_clr();
-	DateTime dt = {12,59,50,2,28,2001};
-	char ap = 0;
-	char mode = 0;
+	DDRB |= (1<<3);
+	wdt_enable(9);
 	
-    while (1) {
+	char playing = 1;
+	float spdoffset = 1;
+	char key;
+	
+	while(1)
+	{
+		PlayNote bmzy[] = {
+			{notelist[7+offset],Q},{notelist[5+offset],Q},{notelist[3+offset],Q},{notelist[2+offset],Q},{notelist[24+offset],T},{notelist[26+offset],T},{notelist[3+offset],Q},{notelist[24+offset],Ei},
+			{0,Ei},{notelist[24+offset],Ei},{notelist[7+offset],Q},{notelist[5+offset],Q},{notelist[3+offset],Q},{notelist[3+offset],Q},{notelist[26+offset],T},
+			{notelist[24+offset],U},{notelist[24+offset],Ei},{notelist[3+offset],Ei},{notelist[3+offset],Q},{0,Ei},{notelist[26+offset],Ei},{notelist[10+offset],Q},
+			{notelist[8+offset],T},{notelist[7+offset],U},{notelist[7+offset],Ei},{notelist[3+offset],Ei},{notelist[3+offset],Ei},{notelist[3+offset],U},{notelist[5+offset],U},{notelist[3+offset],Ei},{notelist[5+offset],Ei},
+			{notelist[7+offset],Q},{notelist[3+offset],Ei},{notelist[26+offset],Ei},{notelist[3+offset],Ei},{notelist[26+offset],Ei},{notelist[5+offset],T},{notelist[7+offset],U},{notelist[7+offset],Ei},
+			{notelist[5+offset],Ei},{0,Q},{notelist[5+offset],Ei},{notelist[7+offset],Ei},{notelist[7+offset],Ei},{notelist[3+offset],Ei},{notelist[3+offset],Q},{notelist[3+offset],Q}
+
+		};
 		
-		avr_wait(120);
-		unsigned char key = getkey();
-		if (key == 'C')
-		{
-			ap = 1;
-		}
-		else if (key == 'D')
-		{
-			ap = 0;
-		}
-		else if (key == 'A')
-		{
-			mode = 1;
-		}
-	
+		PlayNote sykxmyas[] = {
+			{notelist[7+offset], Ei}, {notelist[8+offset], Ei}, {notelist[8+offset], Ei}, {notelist[8+offset], Ei}, {notelist[7+offset], U}, {notelist[8+offset], U}, {notelist[8+offset], Q}, {0, Ei},
+			{notelist[7+offset], Ei}, {notelist[8+offset], Ei}, {notelist[8+offset], Ei}, {notelist[8+offset], Ei}, {notelist[7+offset], U}, {notelist[8+offset], U}, {notelist[7+offset], Q},
+			{0, Ei}, {notelist[3+offset], Ei}, {notelist[5+offset],Ei}, {notelist[3+offset], U}, {notelist[5+offset], U}, {notelist[5+offset], U}, {0, Ei},
+			{notelist[5+offset], U},{notelist[5+offset], Q}, {notelist[5+offset], T}, {notelist[7+offset], U}, {notelist[7+offset], Q}, {notelist[7+offset], Q}, {0, Q}, {0, Q}
+		};
+		
+		PlayNote secretbase[] =  {
+			{notelist[2+offset], Ei}, {notelist[15+offset], Ei}, {notelist[17+offset], U}, {0, U}, {notelist[17+offset], U}, {0,U}, {notelist[21+offset], U}, {0,U}, {notelist[21+offset], U}, {0,U}, {notelist[21+offset], U}, 
+			{0,U}, {notelist[21+offset], U}, {0,U}, {notelist[21+offset], T}, {0,U}, {notelist[21+offset], U}, {0,U}, {notelist[21+offset], U}, {0,U}, {notelist[17+offset], U}, {0,U},
+			{notelist[17+offset], U}, {0,U},{notelist[17+offset], U}, {0,U},{notelist[17+offset], U}, {0,U}, {notelist[17+offset], T}, {0,U}, {notelist[17+offset], U}, {0,U}, 
+			{notelist[17+offset], U}, {0,U}, {notelist[15+offset], U}, {0,U}, {notelist[15+offset], U}, {0,U},{notelist[15+offset], U}, {0,U}, {notelist[15+offset], U}, {0,U}, 
+			{notelist[15+offset], T}, {0,U}, {notelist[15+offset], U}, {0,U}, {notelist[10+offset], U}, {0,U}, {notelist[10+offset], U}, {0,U}, {notelist[10+offset], U}, {0,U}, 
+			{0, Ei}, {notelist[10+offset], U}, {0,U}, {notelist[15+offset], U}, {0,U}, {notelist[17+offset], U}, {0,U}, {notelist[21+offset], U}, {0,U}, 
+			{notelist[21+offset], U}, {0,U}, {notelist[21+offset], U}, {0,U}, {notelist[21+offset], U}, {0,U}, {notelist[21+offset], U}, {0,U}, {notelist[21+offset], U}, 
+			{0,U},  {notelist[21+offset], U}, {0,U}, {notelist[22+offset], Ei}, {0,Ei}, {notelist[21+offset], U}, {0,U},{notelist[21+offset], U}, {0,U},
+			{notelist[21+offset], U}, {0,U}, {notelist[21+offset], U}, {0,U},{notelist[21+offset], U}, {0,U}, {notelist[17+offset], U}, {0,U}, {notelist[15+offset], U}, 
+			{0,U}, {notelist[17+offset], Q}, {notelist[21+offset], U}, {0,U},{notelist[21+offset], U}, {0,U}};
 				
-		if (!mode)
+		songinfo songlist[3] = {
+			{bmzy,47,120,"BMZY"},
+			{sykxmyas,30,80,"sykxmyas"},
+			{secretbase,94,120,"secret base"}
+		};
+		
+		if (playing)
 		{
-			tick(&dt);
-			if (ap)
+			lcd_clr();
+			lcd_pos(0,0);
+			lcd_puts2(songlist[playing-1].name);
+			key = play_song(songlist[playing-1].song,songlist[playing-1].length,songlist[playing-1].speed * spdoffset);
+			if (key == 'A')
 			{
-				display_timeAP(&dt);
+				playing = 0;
+				avr_wait(500);
 			}
-			else
+			else if (key =='1')
 			{
-				display_time(&dt);
+				playing = 1;
+				avr_wait(500);
+			}
+			else if (key == '2')
+			{
+				playing = 2;
+				avr_wait(500);
+			}
+			if (key == '3')
+			{
+				playing = 3;
+				avr_wait(500);
+			}
+			if (key == 'B')
+			{
+				spdoffset *= 2;
+				avr_wait(500);
+			}
+			if (key == 'C')
+			{
+				spdoffset /= 2;
+				avr_wait(500);
+			}
+			if (key == '*')
+			{
+				offset += 1;
+			}
+			if (key == '#')
+			{
+				offset -= 1;
 			}
 		}
-		else if (mode)
+		else
 		{
-			set_time(&dt);
-			if (!check_input(&dt))
+			lcd_clr();
+			lcd_pos(0,0);
+			lcd_puts2("SPOTTED");
+			char key = wait_key();
+			if (key == 'A')
 			{
-				DateTime dtt = {12,59,50,2,28,2001};
-				dt = dtt;
+				playing = 1;
 			}
-				
-			
-			mode = 0;
 		}
-    }
+	}
 }
+
+
+
+
+
+
+
+
+
+
 
 void keypad_init(void)
 {
@@ -117,79 +287,6 @@ unsigned char getkey(void)
 	return 0;
 }
 
-void display_time(const DateTime *dt) {
-	char buffer[16];
-	lcd_clr();
-	sprintf(buffer, "%02d/%02d/%02d", dt->month, dt->day, dt->year);
-	lcd_pos(0, 0);
-	lcd_puts2(buffer);
-	sprintf(buffer, "%02d:%02d:%02d", dt->hour, dt->minute, dt->second);
-	lcd_pos(1, 0);
-	lcd_puts2(buffer);
-}
-
-int is_leap_year(unsigned short year) {
-	return ((year % 4 == 0) && (year % 100 != 0)) || (year % 400 == 0);
-}
-void tick(DateTime *time) {
-	time->second++;
-	if (time->second >= 60) {
-		time->second = 0;
-		time->minute++;
-		if (time->minute >= 60) {
-			time->minute = 0;
-			time->hour++;
-			if (time->hour >= 24) {
-				time->hour = 0;
-				time->day++;
-				int days_in_month;
-				switch (time->month) {
-					case 2:
-					days_in_month = is_leap_year(time->year) ? 29 : 28;
-					break;
-					case 4:
-					case 6:
-					case 9:
-					case 11:
-					days_in_month = 30;
-					break;
-					default:
-					days_in_month = 31;
-				}
-				if (time->day > days_in_month) {
-					time->day = 1;
-					time->month++;
-					if (time->month > 12) {
-						time->month = 1;
-						time->year++;
-					}
-				}
-			}
-		}
-	}
-}
-
-void display_timeAP(const DateTime *dt) {
-	char buffer[20];
-	lcd_clr();
-	sprintf(buffer, "%02d/%02d/%02d", dt->month, dt->day, dt->year);
-	lcd_pos(0, 0);
-	lcd_puts2(buffer);
-	int hour = dt->hour;
-	char *am_pm = "AM";
-	if (hour >= 12) {
-		am_pm = "PM";
-		if (hour > 12)
-			hour -= 12;
-	}
-	if (hour == 0) {
-		hour = 12;
-	}
-	sprintf(buffer, "%02d:%02d:%02d %s", hour, dt->minute, dt->second, am_pm);
-	lcd_pos(1, 0);
-	lcd_puts2(buffer);
-}
-
 char wait_key(void)
 {
 	char k = 0;
@@ -207,109 +304,6 @@ unsigned char char_to_number(char c) {
 	if (c >= '0' && c <= '9') {
 		return c - '0';
 		} else {
-		return 0;
-	}
-}
-
-void set_time(DateTime *dt) {
-	int row, col, num;
-	lcd_clr();
-	lcd_pos(0, 0);
-	//lcd_puts2("Setting Time:");
-	for (row = 0; row < 2; row++) {
-		for (col = 0; col < 3; col++) {
-			lcd_clr();
-			switch (row * 3 + col) {
-				case 0: // Year
-				lcd_pos(0, 0);
-				lcd_puts2("Enter year:");
-				lcd_pos(1,0);
-				num = char_to_number(wait_key());
-				num = num * 10 + char_to_number(wait_key());
-				num = num * 10 + char_to_number(wait_key());
-				num = num * 10 + char_to_number(wait_key());
-				dt->year = num;
-				break;
-				case 1: // Month
-				lcd_pos(0, 0);
-				lcd_puts2("Enter mouth:");
-				lcd_pos(1,0);
-				num = char_to_number(wait_key());
-				num = num * 10 + char_to_number(wait_key());
-				dt->month = num;
-				break;
-				case 2: // Day
-				lcd_pos(0, 0);
-				lcd_puts2("Enter day:");
-				lcd_pos(1,0);
-				num = char_to_number(wait_key());
-				num = num * 10 + char_to_number(wait_key());
-				dt->day = num;
-				break;
-				case 3: // Hour
-				lcd_pos(0, 0);
-				lcd_puts2("Enter hour:");
-				lcd_pos(1,0);
-				num = char_to_number(wait_key());
-				num = num * 10 + char_to_number(wait_key());
-				dt->hour = num;
-				break;
-				case 4: // Minute
-				lcd_pos(0, 0);
-				lcd_puts2("Enter minute:");
-				lcd_pos(1,0);
-				num = char_to_number(wait_key());
-				num = num * 10 + char_to_number(wait_key());
-				dt->minute = num;
-				break;
-				case 5: // Second
-				lcd_pos(0, 0);
-				lcd_puts2("Enter second:");
-				lcd_pos(1,0);
-				num = char_to_number(wait_key());
-				num = num * 10 + char_to_number(wait_key());
-				dt->second = num;
-				break;
-			}
-		}
-	}
-}
-
-
-int is_date_valid(unsigned char day, unsigned char month, unsigned int year) {
-	if (month < 1 || month > 12) return 0;
-
-	if (day < 1) return 0;
-	if (month == 2) {
-		if (is_leap_year(year)) {
-			if (day > 29) return 0;
-			} else {
-			if (day > 28) return 0;
-		}
-		} else if (month == 4 || month == 6 || month == 9 || month == 11) {
-		if (day > 30) return 0;
-		} else {
-		if (day > 31) return 0;
-	}
-
-	return 1;
-}
-
-int is_time_valid(unsigned char hour, unsigned char minute, unsigned char second) {
-	if (hour > 23) return 0;
-	if (minute > 59) return 0;
-	if (second > 59) return 0;
-	return 1;
-}
-
-char check_input(DateTime* dt) {
-	if (is_date_valid(dt->day, dt->month, dt->year) && is_time_valid(dt->hour, dt->minute, dt->second)) {
-		return 1;
-		} else {
-		lcd_clr();
-		lcd_pos(0,0);
-		lcd_puts2("Invalid!");
-		avr_wait(200);
 		return 0;
 	}
 }
